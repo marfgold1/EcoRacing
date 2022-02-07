@@ -153,10 +153,12 @@ public class Bot {
         for (int i = Math.max(0, car.position.lane - 1); i < Math.min(4, car.position.lane); i++){
             Lane[] laneList = map.get(i);
             boolean mudFlag = true && !isBoosting;
+
+            // Iterate from car position to car position + speed
             for (int j = Math.max(car.position.block - startBlock, 0); j <= car.position.block - startBlock + car.speed; j++){
                 // If there's a wall, flag it as a wall
                 if (laneList[i].terrain.equals(Terrain.WALL)){
-                    flags[i - car.position.lane-1] = Terrain.WALL;
+                    flags[i - car.position.lane+1] = Terrain.WALL;
                     break;
                 }
                 // If there's only 1 mud, ignore it
@@ -169,16 +171,18 @@ public class Bot {
 
                 // If there's more mud, flag it as a mud
                 if (laneList[i].terrain.equals(Terrain.MUD) || laneList[i].terrain.equals(Terrain.OIL_SPILL)){
-                    flags[i - car.position.lane-1] = Terrain.MUD;
+                    flags[i - car.position.lane+1] = Terrain.MUD;
                     continue;
                 }
 
                 // If there's a powerup on an empty lane, flag it as a boost powerup
-                if (flags[i - car.position.lane-1] == null && terrainPowerups.contains(laneList[i].terrain)){
-                    flags[i - car.position.lane-1] = Terrain.BOOST;
+                if (flags[i - car.position.lane+1] == null && terrainPowerups.contains(laneList[i].terrain)){
+                    flags[i - car.position.lane+1] = Terrain.BOOST;
                 }
             }
+        }
 
+        for (int i = 0; i < 3; i++){
             // If there's nothing, flag it as empty
             if (flags[i] == null){
                 flags[i] = Terrain.EMPTY;
