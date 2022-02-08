@@ -5,6 +5,7 @@ import za.co.entelect.challenge.entities.*;
 import za.co.entelect.challenge.enums.PowerUps;
 import za.co.entelect.challenge.enums.Terrain;
 import java.util.*;
+import java.lang.Exception;
 
 public class Bot {
 
@@ -88,18 +89,18 @@ public class Bot {
             return res;
         } else {
             // If there's an obstacle, avoid it
-            if (!flags[0].equals(Terrain.EMPTY)) {
+            if (!flags[1].equals(Terrain.EMPTY)) {
                 // If has LIZARD, use it
                 if (hasPowerUp(PowerUps.LIZARD, myCar.powerups)) {
                     res.add(LIZARD);
                 }
                 // Prioritize to stay on middle (lane 2/3)
-                if (myCar.position.lane < 3 && flags[1].equals(Terrain.EMPTY)) {
+                if (myCar.position.lane < 3 && flags[2].equals(Terrain.EMPTY)) {
                     res.add(TURN_RIGHT);
                 } else if (myCar.position.lane > 1 && flags[0].equals(Terrain.EMPTY)) {
                     res.add(TURN_LEFT);
                 // If there's an obstacle on the middle, move to the edge
-                } else if (flags[1].equals(Terrain.EMPTY)) {
+                } else if (flags[2].equals(Terrain.EMPTY)) {
                     res.add(TURN_RIGHT);
                 } else if (flags[0].equals(Terrain.EMPTY)) {
                     res.add(TURN_LEFT);
@@ -131,9 +132,9 @@ public class Bot {
         Terrain[] flags = new Terrain[3];
 
         // Flags out of bounds as WALL
-        if (myCar.position.lane == 4){
+        if (car.position.lane == 4){
             flags[2] = Terrain.WALL;
-        } else if (myCar.position.lane == 0){
+        } else if (car.position.lane == 0){
             flags[0] = Terrain.WALL;
         }
 
@@ -146,38 +147,31 @@ public class Bot {
         }};
         final int startBlock = map.get(0)[0].position.block;
 
-        // When isBoosting, car will prioritize dodging than ramming through mud
-        boolean isBoosting = forPlayer ? car.boosting : true;
-
         // Iterate through possible lanes beside the car
-        for (int i = Math.max(0, car.position.lane - 1); i < Math.min(4, car.position.lane); i++){
+        for (int i = Math.max(0, car.position.lane - 1); i <= Math.min(3, car.position.lane); i++){
             Lane[] laneList = map.get(i);
-            boolean mudFlag = true && !isBoosting;
+
+            if (flags[i-car.position.lane+2] == Terrain.WALL){
+                continue;
+            }
 
             // Iterate from car position to car position + speed
             for (int j = Math.max(car.position.block - startBlock, 0); j <= car.position.block - startBlock + car.speed; j++){
                 // If there's a wall, flag it as a wall
-                if (laneList[i].terrain.equals(Terrain.WALL)){
-                    flags[i - car.position.lane+1] = Terrain.WALL;
+                if (laneList[j].terrain.equals(Terrain.WALL)){
+                    flags[i - car.position.lane+2] = Terrain.WALL;
                     break;
-                }
-                // If there's only 1 mud, ignore it
-                if (mudFlag){
-                    if (laneList[i].terrain.equals(Terrain.MUD) || laneList[i].terrain.equals(Terrain.OIL_SPILL)){
-                        mudFlag = false;
-                        continue;
-                    }
                 }
 
                 // If there's more mud, flag it as a mud
-                if (laneList[i].terrain.equals(Terrain.MUD) || laneList[i].terrain.equals(Terrain.OIL_SPILL)){
-                    flags[i - car.position.lane+1] = Terrain.MUD;
+                if (laneList[j].terrain.equals(Terrain.MUD) || laneList[j].terrain.equals(Terrain.OIL_SPILL)){
+                    flags[i - car.position.lane+2] = Terrain.MUD;
                     continue;
                 }
 
                 // If there's a powerup on an empty lane, flag it as a boost powerup
-                if (flags[i - car.position.lane+1] == null && terrainPowerups.contains(laneList[i].terrain)){
-                    flags[i - car.position.lane+1] = Terrain.BOOST;
+                if (flags[i - car.position.lane+2] == null && terrainPowerups.contains(laneList[j].terrain)){
+                    flags[i - car.position.lane+2] = Terrain.BOOST;
                 }
             }
         }
@@ -188,26 +182,7 @@ public class Bot {
                 flags[i] = Terrain.EMPTY;
             }
         }
-
-        // Position carPos = car.position;
-        // int lane = carPos.lane;
-        // int startBlock = map.get(0)[0].position.block;
-        // int viewingDistance = 15;
-        // if (lane == 1) {
-        //     // Check for obstacles in lane 1 and 2
-
-        //     for (int i = Math.max(carPos.block - startBlock, 0) + 1; i < carPos.block - startBlock
-        //             + viewingDistance; i++) {
-
-        //     }
-        // } else if (lane == map.size()) {
-        //     // Check for obstacles in last lane and the lane before the last lane
-        //     for (int i = Math.max(carPos.block - startBlock, 0) + 1; i < carPos.block - startBlock
-        //             + viewingDistance; i++) {
-
-        //     }
-        // }
-
+        
         return flags;
 
     }
