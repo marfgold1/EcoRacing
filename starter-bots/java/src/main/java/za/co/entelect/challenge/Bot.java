@@ -12,7 +12,7 @@ public class Bot {
     private final static Command ACCELERATE = new AccelerateCommand();
     private final static Command LIZARD = new LizardCommand();
     // private final static Command OIL = new OilCommand();
-    // private final static Command BOOST = new BoostCommand();
+    private final static Command BOOST = new BoostCommand();
     // private final static Command EMP = new EmpCommand();
     private final static Command FIX = new FixCommand();
 
@@ -45,7 +45,7 @@ public class Bot {
 
         availableCommands.add(fix());
         availableCommands.add(dodge());
-        // availableCommands.add(accel());
+        availableCommands.add(accel());
         // availableCommands.add(offensive());
 
         // Iterate and return command with the higher priority
@@ -111,6 +111,26 @@ public class Bot {
         return res;
     };
 
+    private ArrayList<Command> accel() {
+        boolean useBoost = true;
+        ArrayList<Command> res = new ArrayList<Command>();
+
+        Terrain[] flags = LaneFlags(true, 15);
+
+        // check if the car has damage or the car is already boosting
+        if (myCar.damage > 0 || myCar.speed > 9) {
+            useBoost = false;
+        } else {
+            if (flags[1].equals(Terrain.MUD) || flags[1].equals(Terrain.WALL) || flags[1].equals(Terrain.OIL_SPILL)) {
+                useBoost = false;
+            }
+        }
+
+        if (useBoost && hasPowerUp(PowerUps.BOOST, myCar.powerups)) res.add(BOOST);
+
+        return res;
+    }
+
 
     /* 
     Flags the nearby lane with the highest priority terrain type
@@ -122,12 +142,22 @@ public class Bot {
     - TWEET, BOOST, EMP, LIZARD, OIL_POWER = BOOST
     */
     private Terrain[] LaneFlags(boolean forPlayer) {
+        return LaneFlags(forPlayer, -1);
+    }
+
+    private Terrain[] LaneFlags(boolean forPlayer, int forwardDistance) {
         Car car;
+
         if (forPlayer) {
             car = myCar;
         } else {
             car = opponent;
         }
+
+        if (forwardDistance == -1) {
+            forwardDistance = car.speed;
+        }
+
         List<Lane[]> map = gameState.lanes;
         Terrain[] flags = new Terrain[3];
 
@@ -156,7 +186,7 @@ public class Bot {
             }
 
             // Iterate from car position to car position + speed
-            for (int j = Math.max(car.position.block - startBlock, 0); j <= car.position.block - startBlock + car.speed; j++){
+            for (int j = Math.max(car.position.block - startBlock, 0); j <= car.position.block - startBlock + forwardDistance; j++){
                 // If there's a wall, flag it as a wall
                 if (laneList[j].terrain.equals(Terrain.WALL)){
                     flags[i - car.position.lane+2] = Terrain.WALL;
