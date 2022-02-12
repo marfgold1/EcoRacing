@@ -6,9 +6,10 @@ import za.co.entelect.challenge.enums.PowerUps;
 import za.co.entelect.challenge.enums.Terrain;
 import java.util.*;
 import java.lang.Exception;
+import java.io.File;
+import java.io.FileWriter;
 
 public class Bot {
-
     private final static Command ACCELERATE = new AccelerateCommand();
     private final static Command LIZARD = new LizardCommand();
     // private final static Command OIL = new OilCommand();
@@ -31,7 +32,7 @@ public class Bot {
         this.opponent = gameState.opponent;
     }
 
-    public Command run() {
+    public Command run() throws Exception {
         // Initialize Available Command
         /*
          * Available command initialized from index 0-3, where
@@ -72,38 +73,54 @@ public class Bot {
         return res;
     }
 
-    private ArrayList<Command> dodge() {
+    private ArrayList<Command> dodge() throws Exception {
         ArrayList<Command> res = new ArrayList<Command>();
 
         // Check laneflags for player
         Terrain[] flags = LaneFlags(true);
 
+        File f = new File("logs_flags.txt");
+        try {
+            FileWriter fw = new FileWriter(f, true);
+            fw.write(String.format("Round : %d flags=", gameState.currentRound) + Arrays.toString(flags));
+            fw.write("\n");
+            fw.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         // Car will try to aim for the powerups
-        if (flags[1].equals(Terrain.BOOST)) {
-            return res;
-        } else if (flags[0].equals(Terrain.BOOST)) {
-            res.add(TURN_LEFT);
-            return res;
-        } else if (flags[2].equals(Terrain.BOOST)) {
+        if (myCar.position.lane == 1 && flags[2] == Terrain.EMPTY && !flags[1].equals(Terrain.BOOST)) {
             res.add(TURN_RIGHT);
-            return res;
+        } else if (myCar.position.lane == 4 && flags[0] == Terrain.EMPTY && !flags[1].equals(Terrain.BOOST)) {
+            res.add(TURN_LEFT);
         } else {
-            // If there's an obstacle, avoid it
-            if (!flags[1].equals(Terrain.EMPTY)) {
-                // If has LIZARD, use it
-                if (hasPowerUp(PowerUps.LIZARD, myCar.powerups)) {
-                    res.add(LIZARD);
-                }
-                // Prioritize to stay on middle (lane 2/3)
-                if (myCar.position.lane < 3 && flags[2].equals(Terrain.EMPTY)) {
-                    res.add(TURN_RIGHT);
-                } else if (myCar.position.lane > 1 && flags[0].equals(Terrain.EMPTY)) {
-                    res.add(TURN_LEFT);
-                // If there's an obstacle on the middle, move to the edge
-                } else if (flags[2].equals(Terrain.EMPTY)) {
-                    res.add(TURN_RIGHT);
-                } else if (flags[0].equals(Terrain.EMPTY)) {
-                    res.add(TURN_LEFT);
+            if (flags[1].equals(Terrain.BOOST)) {
+                return res;
+            } else if (flags[0].equals(Terrain.BOOST)) {
+                res.add(TURN_LEFT);
+                return res;
+            } else if (flags[2].equals(Terrain.BOOST)) {
+                res.add(TURN_RIGHT);
+                return res;
+            } else {
+                // If there's an obstacle, avoid it
+                if (!flags[1].equals(Terrain.EMPTY)) {
+                    // If has LIZARD, use it
+                    if (hasPowerUp(PowerUps.LIZARD, myCar.powerups) && !flags[1].equals(Terrain.OIL_SPILL)) {
+                        res.add(LIZARD);
+                    }
+                    // Prioritize to stay on middle (lane 2/3)
+                    if (myCar.position.lane < 3 && flags[2].equals(Terrain.EMPTY)) {
+                        res.add(TURN_RIGHT);
+                    } else if (myCar.position.lane > 1 && flags[0].equals(Terrain.EMPTY)) {
+                        res.add(TURN_LEFT);
+                        // If there's an obstacle on the middle, move to the edge
+                    } else if (flags[2].equals(Terrain.EMPTY)) {
+                        res.add(TURN_RIGHT);
+                    } else if (flags[0].equals(Terrain.EMPTY)) {
+                        res.add(TURN_LEFT);
+                    }
                 }
             }
         }
@@ -118,7 +135,7 @@ public class Bot {
         Terrain[] flags = LaneFlags(true, 15);
 
         // check if the car has damage or the car is already boosting
-        if (myCar.damage > 0 || myCar.speed > 9) {
+        if (myCar.damage > 0 || myCar.boosting) {
             useBoost = false;
         } else {
             if (flags[1].equals(Terrain.MUD) || flags[1].equals(Terrain.WALL) || flags[1].equals(Terrain.OIL_SPILL)) {
@@ -126,21 +143,21 @@ public class Bot {
             }
         }
 
-        if (useBoost && hasPowerUp(PowerUps.BOOST, myCar.powerups)) res.add(BOOST);
+        if (useBoost && hasPowerUp(PowerUps.BOOST, myCar.powerups))
+            res.add(BOOST);
 
         return res;
     }
 
-
-    /* 
-    Flags the nearby lane with the highest priority terrain type
-    WALL > MUD > BOOST(all powerups) > EMPTY
-
-    Where:
-    - anything isCyberTruck = WALL
-    - OIL_SPILLS = MUD
-    - TWEET, BOOST, EMP, LIZARD, OIL_POWER = BOOST
-    */
+    /*
+     * Flags the nearby lane with the highest priority terrain type
+     * WALL > MUD > BOOST(all powerups) > EMPTY
+     * 
+     * Where:
+     * - anything isCyberTruck = WALL
+     * - OIL_SPILLS = MUD
+     * - TWEET, BOOST, EMP, LIZARD, OIL_POWER = BOOST
+     */
     private Terrain[] LaneFlags(boolean forPlayer) {
         return LaneFlags(forPlayer, -1);
     }
@@ -162,57 +179,76 @@ public class Bot {
         Terrain[] flags = new Terrain[3];
 
         // Flags out of bounds as WALL
-        if (car.position.lane == 4){
+        if (car.position.lane == 4) {
             flags[2] = Terrain.WALL;
-        } else if (car.position.lane == 0){
+        } else if (car.position.lane == 1) {
             flags[0] = Terrain.WALL;
         }
 
-        List<Terrain> terrainPowerups = new ArrayList<Terrain>(){{
-            add(Terrain.TWEET); 
-            add(Terrain.BOOST);
-            add(Terrain.EMP);
-            add(Terrain.LIZARD);
-            add(Terrain.OIL_POWER);
-        }};
+        List<Terrain> terrainPowerups = new ArrayList<Terrain>() {
+            {
+                add(Terrain.TWEET);
+                add(Terrain.BOOST);
+                add(Terrain.EMP);
+                add(Terrain.LIZARD);
+                add(Terrain.OIL_POWER);
+            }
+        };
         final int startBlock = map.get(0)[0].position.block;
 
         // Iterate through possible lanes beside the car
-        for (int i = Math.max(0, car.position.lane - 1); i <= Math.min(3, car.position.lane); i++){
+        for (int i = Math.max(0, car.position.lane - 2); i <= Math.min(3, car.position.lane); i++) {
             Lane[] laneList = map.get(i);
 
-            if (flags[i-car.position.lane+2] == Terrain.WALL){
+            if (flags[i - car.position.lane + 2] == Terrain.WALL) {
                 continue;
             }
 
             // Iterate from car position to car position + speed
-            for (int j = Math.max(car.position.block - startBlock, 0); j <= car.position.block - startBlock + forwardDistance; j++){
-                // If there's a wall, flag it as a wall
-                if (laneList[j].terrain.equals(Terrain.WALL)){
-                    flags[i - car.position.lane+2] = Terrain.WALL;
+            for (int j = Math.max(car.position.block - startBlock, 0); j <= car.position.block - startBlock
+                    + forwardDistance; j++) {
+                if (laneList[j] == null || laneList[j].terrain.equals(Terrain.FINISH)) {
                     break;
                 }
 
-                // If there's more mud, flag it as a mud
-                if (laneList[j].terrain.equals(Terrain.MUD) || laneList[j].terrain.equals(Terrain.OIL_SPILL)){
-                    flags[i - car.position.lane+2] = Terrain.MUD;
-                    continue;
+                // Flag the lane as oil spills if it cannot be lizard'd
+                if (i - car.position.lane + 2 == 1 && j == car.position.block - startBlock + car.speed
+                        && flags[i - car.position.lane + 2] != Terrain.WALL) {
+                    if (laneList[j].terrain.equals(Terrain.OIL_SPILL) || laneList[j].terrain.equals(Terrain.WALL)
+                            || laneList[j].terrain.equals(Terrain.MUD)) {
+                        flags[i - car.position.lane + 2] = Terrain.OIL_SPILL;
+                        break;
+                    }
+                }
+
+                // If there's a wall or anything occupied by cybertruck, flag it as a wall
+                if (laneList[j].terrain.equals(Terrain.WALL) || laneList[j].isOccupiedByCyberTruck
+                        || (laneList[j].occupiedByPlayerId > 0 && laneList[j].occupiedByPlayerId != myCar.id)) {
+                    flags[i - car.position.lane + 2] = Terrain.WALL;
+                }
+
+                // If there's mud/oil spills, flag it as a mud
+                if (flags[i - car.position.lane + 2] != Terrain.WALL) {
+                    if (laneList[j].terrain.equals(Terrain.MUD) || laneList[j].terrain.equals(Terrain.OIL_SPILL)) {
+                        flags[i - car.position.lane + 2] = Terrain.MUD;
+                        continue;
+                    }
                 }
 
                 // If there's a powerup on an empty lane, flag it as a boost powerup
-                if (flags[i - car.position.lane+2] == null && terrainPowerups.contains(laneList[j].terrain)){
-                    flags[i - car.position.lane+2] = Terrain.BOOST;
+                if (flags[i - car.position.lane + 2] == null && terrainPowerups.contains(laneList[j].terrain)) {
+                    flags[i - car.position.lane + 2] = Terrain.BOOST;
                 }
             }
         }
 
-        for (int i = 0; i < 3; i++){
+        for (int i = 0; i < 3; i++) {
             // If there's nothing, flag it as empty
-            if (flags[i] == null){
+            if (flags[i] == null) {
                 flags[i] = Terrain.EMPTY;
             }
         }
-        
+
         return flags;
 
     }
