@@ -17,6 +17,8 @@ public enum State {
     HIT_MUD,
     @SerializedName("HIT_OIL")
     HIT_OIL,
+    @SerializedName("HIT_EMP")
+    HIT_EMP,
     @SerializedName("DECELERATING")
     DECELERATING,
     @SerializedName("PICKED_UP_POWERUP")
@@ -25,6 +27,8 @@ public enum State {
     USED_BOOST,
     @SerializedName("USED_OIL")
     USED_OIL,
+    @SerializedName("FIXED_CAR")
+    FIXED_CAR,
     @SerializedName("FINISHED")
     FINISHED
 }

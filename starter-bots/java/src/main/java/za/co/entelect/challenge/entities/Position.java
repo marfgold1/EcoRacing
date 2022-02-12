@@ -8,4 +8,13 @@ public class Position {
 
     @SerializedName("x")
     public int block;
+
+    public Position() {
+        this(-1, -1);
+    }
+
+    public Position(int lane, int block) {
+        this.lane = lane;
+        this.block = block;
+    }
 }

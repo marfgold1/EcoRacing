@@ -19,20 +19,20 @@ public class Main {
      * @param args the args
      **/
     public static void main(String[] args) {
-
-        Scanner sc = new Scanner(System.in);
         Gson gson = new Gson();
         Bot bot = new Bot();
-        while(true) {
-            try {
-                int roundNumber = sc.nextInt();
-                String statePath = String.format("./%s/%d/%s", ROUNDS_DIRECTORY, roundNumber, STATE_FILE_NAME);
-                String state = new String(Files.readAllBytes(Paths.get(statePath)));
-                bot.update(gson.fromJson(state, GameState.class));
-                Command command = bot.run();
-                System.out.println(String.format("C;%d;%s", roundNumber, command.render()));
-            } catch (Exception e) {
-                e.printStackTrace();
+        try (Scanner sc = new Scanner(System.in)) {
+            while(true) {
+                try {
+                    int roundNumber = sc.nextInt();
+                    String statePath = String.format("./%s/%d/%s", ROUNDS_DIRECTORY, roundNumber, STATE_FILE_NAME);
+                    String state = new String(Files.readAllBytes(Paths.get(statePath)));
+                    bot.update(gson.fromJson(state, GameState.class));
+                    Command command = bot.run();
+                    System.out.println(String.format("C;%d;%s", roundNumber, command.render()));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
     }

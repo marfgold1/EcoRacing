@@ -9,12 +9,15 @@ import java.lang.Exception;
 import java.io.File;
 import java.io.FileWriter;
 
+import static java.lang.Math.max;
+
 public class Bot {
     private final static Command ACCELERATE = new AccelerateCommand();
     private final static Command LIZARD = new LizardCommand();
-    // private final static Command OIL = new OilCommand();
+    private final static Command OIL = new OilCommand();
     private final static Command BOOST = new BoostCommand();
-    // private final static Command EMP = new EmpCommand();
+    private final static Command EMP = new EmpCommand();
+    private final static TweetCommand TWEET = new TweetCommand();
     private final static Command FIX = new FixCommand();
 
     private final static Command TURN_RIGHT = new ChangeLaneCommand(1);
@@ -23,8 +26,6 @@ public class Bot {
     private GameState gameState;
     private Car myCar;
     private Car opponent;
-
-    private final static int[] speedDamage = { 15, 9, 8, 6, 3, 0 };
 
     public void update(GameState gameState) {
         this.gameState = gameState;
@@ -47,7 +48,7 @@ public class Bot {
         availableCommands.add(fix());
         availableCommands.add(dodge());
         availableCommands.add(accel());
-        // availableCommands.add(offensive());
+        availableCommands.add(offensive());
 
         // Iterate and return command with the higher priority
         for (ArrayList<Command> commands : availableCommands) {
@@ -63,7 +64,7 @@ public class Bot {
     private ArrayList<Command> fix() {
         ArrayList<Command> res = new ArrayList<Command>();
         // If the opponent is faster than our current max speed, fix first
-        if (opponent.speed > speedDamage[myCar.damage] && myCar.damage > 0) {
+        if (opponent.speed > myCar.getMaxSpeed() && myCar.damage > 0) {
             res.add(FIX);
         } else {
             if (myCar.damage > 1) {
@@ -107,7 +108,7 @@ public class Bot {
                 // If there's an obstacle, avoid it
                 if (!flags[1].equals(Terrain.EMPTY)) {
                     // If has LIZARD, use it
-                    if (hasPowerUp(PowerUps.LIZARD, myCar.powerups) && !flags[1].equals(Terrain.OIL_SPILL)) {
+                    if (hasPowerUp(PowerUps.LIZARD) && !flags[1].equals(Terrain.OIL_SPILL)) {
                         res.add(LIZARD);
                     }
                     // Prioritize to stay on middle (lane 2/3)
@@ -143,8 +144,65 @@ public class Bot {
             }
         }
 
-        if (useBoost && hasPowerUp(PowerUps.BOOST, myCar.powerups))
+        if (useBoost && hasPowerUp(PowerUps.BOOST))
             res.add(BOOST);
+
+        return res;
+    }
+
+    int lastCheckBlock = 1;
+    private ArrayList<Command> offensive() {
+        ArrayList<Command> res = new ArrayList<Command>();
+        if (myCar.position.block < opponent.position.block) {
+            if (hasPowerUp(PowerUps.EMP))
+                res.add(EMP);
+        }
+
+        // Scan for any candidate position for cybertruck
+        int startBlock = gameState.lanes.get(0)[0].position.block;
+        int laneLen = gameState.lanes.get(0).length;
+        int countObstacle, freeLane;
+        boolean isEnd = false;
+        int j;
+        for (j = max(lastCheckBlock - startBlock, 0) + 1; j < laneLen; j++) {
+            freeLane = -1;
+            countObstacle = 0;
+            lastCheckBlock = startBlock + j;
+            for (int i = gameState.lanes.size() - 1; i >= 0; i--) {
+                Lane[] lane = gameState.lanes.get(i);
+                if (lane[j] == null || lane[j].terrain == Terrain.FINISH) {
+                    isEnd = true;
+                    break;
+                }
+                if (
+                    lane[j].terrain == Terrain.MUD
+                    || lane[j].terrain == Terrain.WALL
+                    || lane[j].terrain == Terrain.OIL_SPILL
+                    //|| lane[j].occupiedByCybertruck
+                ) {
+                    countObstacle++;
+                } else {
+                    freeLane = i + 1;
+                }
+            }
+            if (isEnd)
+                break;
+            else if (countObstacle == 2 || countObstacle == 3){
+                TWEET.addPosition(freeLane, lastCheckBlock);
+            }
+        }
+        if (isEnd) lastCheckBlock--;
+
+        // Place dat cybertruck onegai
+        if (hasPowerUp(PowerUps.TWEET)) {
+            if (TWEET.placeCybertruck(opponent.position, myCar.position))
+                res.add(TWEET);
+        }
+
+        if (myCar.position.block > opponent.position.block) {
+            if (hasPowerUp(PowerUps.OIL))
+                res.add(OIL);
+        }
 
         return res;
     }
@@ -253,8 +311,8 @@ public class Bot {
 
     }
 
-    private Boolean hasPowerUp(PowerUps powerUpToCheck, PowerUps[] available) {
-        for (PowerUps powerUp : available) {
+    private Boolean hasPowerUp(PowerUps powerUpToCheck) {
+        for (PowerUps powerUp : myCar.powerups) {
             if (powerUp.equals(powerUpToCheck)) {
                 return true;
             }
