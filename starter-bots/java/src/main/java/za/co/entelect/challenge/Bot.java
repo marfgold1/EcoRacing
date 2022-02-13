@@ -46,7 +46,9 @@ public class Bot {
         List<ArrayList<Command>> availableCommands = new ArrayList<>();
 
         availableCommands.add(fix());
-        availableCommands.add(dodge());
+        if (myCar.speed > 0) {
+            availableCommands.add(dodge());
+        }
         availableCommands.add(accel());
         availableCommands.add(offensive());
 
@@ -79,16 +81,6 @@ public class Bot {
 
         // Check laneflags for player
         Terrain[] flags = LaneFlags(true);
-
-        File f = new File("logs_flags.txt");
-        try {
-            FileWriter fw = new FileWriter(f, true);
-            fw.write(String.format("Round : %d flags=", gameState.currentRound) + Arrays.toString(flags));
-            fw.write("\n");
-            fw.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
         // Car will try to aim for the powerups
         if (myCar.position.lane == 1 && flags[2] == Terrain.EMPTY && !flags[1].equals(Terrain.BOOST)) {
@@ -147,13 +139,17 @@ public class Bot {
         if (useBoost && hasPowerUp(PowerUps.BOOST))
             res.add(BOOST);
 
+        if (myCar.speed < myCar.getMaxSpeed()) {
+            res.add(ACCELERATE);
+        }
         return res;
     }
 
     int lastCheckBlock = 1;
+
     private ArrayList<Command> offensive() {
         ArrayList<Command> res = new ArrayList<Command>();
-        if (myCar.position.block < opponent.position.block) {
+        if (myCar.position.block < opponent.position.block && opponent.speed > 6) {
             if (hasPowerUp(PowerUps.EMP))
                 res.add(EMP);
         }
@@ -174,12 +170,10 @@ public class Bot {
                     isEnd = true;
                     break;
                 }
-                if (
-                    lane[j].terrain == Terrain.MUD
-                    || lane[j].terrain == Terrain.WALL
-                    || lane[j].terrain == Terrain.OIL_SPILL
-                    //|| lane[j].occupiedByCybertruck
-                ) {
+                if (lane[j].terrain == Terrain.MUD
+                        || lane[j].terrain == Terrain.WALL
+                        || lane[j].terrain == Terrain.OIL_SPILL
+                        || lane[j].isOccupiedByCyberTruck) {
                     countObstacle++;
                 } else {
                     freeLane = i + 1;
@@ -187,11 +181,12 @@ public class Bot {
             }
             if (isEnd)
                 break;
-            else if (countObstacle == 2 || countObstacle == 3){
+            else if (countObstacle == 2 || countObstacle == 3) {
                 TWEET.addPosition(freeLane, lastCheckBlock);
             }
         }
-        if (isEnd) lastCheckBlock--;
+        if (isEnd)
+            lastCheckBlock--;
 
         // Place dat cybertruck onegai
         if (hasPowerUp(PowerUps.TWEET)) {
@@ -254,6 +249,8 @@ public class Bot {
         };
         final int startBlock = map.get(0)[0].position.block;
 
+        String debug = "";
+
         // Iterate through possible lanes beside the car
         for (int i = Math.max(0, car.position.lane - 2); i <= Math.min(3, car.position.lane); i++) {
             Lane[] laneList = map.get(i);
@@ -261,19 +258,30 @@ public class Bot {
             if (flags[i - car.position.lane + 2] == Terrain.WALL) {
                 continue;
             }
+            int modifier = -1;
+            if (i - car.position.lane + 2 == 1) {
+                modifier = 0;
+                for (int k = 1; k < Car.speedDamage.length; k++) {
+                    if (Car.speedDamage[k] == car.speed) {
+                        modifier = Math.max(Car.speedDamage[k - 1] - myCar.speed, 0);
+                        break;
+                    }
+                }
+            }
 
             // Iterate from car position to car position + speed
             for (int j = Math.max(car.position.block - startBlock, 0); j <= car.position.block - startBlock
-                    + forwardDistance; j++) {
+                    + forwardDistance + modifier; j++) {
+                debug += String.format("\nlane %d block %d: ", i, j);
                 if (laneList[j] == null || laneList[j].terrain.equals(Terrain.FINISH)) {
                     break;
                 }
 
                 // Flag the lane as oil spills if it cannot be lizard'd
-                if (i - car.position.lane + 2 == 1 && j == car.position.block - startBlock + car.speed
-                        && flags[i - car.position.lane + 2] != Terrain.WALL) {
+                if (i - car.position.lane + 2 == 1 && j == car.position.block - startBlock + car.speed) {
                     if (laneList[j].terrain.equals(Terrain.OIL_SPILL) || laneList[j].terrain.equals(Terrain.WALL)
                             || laneList[j].terrain.equals(Terrain.MUD)) {
+                        debug += " OIL_SPILL";
                         flags[i - car.position.lane + 2] = Terrain.OIL_SPILL;
                         break;
                     }
@@ -282,12 +290,14 @@ public class Bot {
                 // If there's a wall or anything occupied by cybertruck, flag it as a wall
                 if (laneList[j].terrain.equals(Terrain.WALL) || laneList[j].isOccupiedByCyberTruck
                         || (laneList[j].occupiedByPlayerId > 0 && laneList[j].occupiedByPlayerId != myCar.id)) {
+                    debug += " WALL";
                     flags[i - car.position.lane + 2] = Terrain.WALL;
                 }
 
                 // If there's mud/oil spills, flag it as a mud
                 if (flags[i - car.position.lane + 2] != Terrain.WALL) {
                     if (laneList[j].terrain.equals(Terrain.MUD) || laneList[j].terrain.equals(Terrain.OIL_SPILL)) {
+                        debug += " MUD";
                         flags[i - car.position.lane + 2] = Terrain.MUD;
                         continue;
                     }
@@ -295,6 +305,7 @@ public class Bot {
 
                 // If there's a powerup on an empty lane, flag it as a boost powerup
                 if (flags[i - car.position.lane + 2] == null && terrainPowerups.contains(laneList[j].terrain)) {
+                    debug += " BOOST->" + laneList[j].terrain.toString();
                     flags[i - car.position.lane + 2] = Terrain.BOOST;
                 }
             }
@@ -303,7 +314,21 @@ public class Bot {
         for (int i = 0; i < 3; i++) {
             // If there's nothing, flag it as empty
             if (flags[i] == null) {
+                debug += String.format("\nlane %d is empty", i);
                 flags[i] = Terrain.EMPTY;
+            }
+        }
+
+        if (forwardDistance == car.speed) {
+            File f = new File("logs_flags.txt");
+            try {
+                FileWriter fw = new FileWriter(f, true);
+                fw.write(Arrays.toString(flags) + '\n');
+                fw.write(String.format("Round : %d ", gameState.currentRound) + debug);
+                fw.write("\n");
+                fw.close();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
 

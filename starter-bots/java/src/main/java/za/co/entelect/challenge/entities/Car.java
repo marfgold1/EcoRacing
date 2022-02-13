@@ -29,8 +29,9 @@ public class Car {
     @SerializedName("boostCounter")
     public int boostCounter;
 
-    private final static int[] speedDamage = { 15, 9, 8, 6, 3, 0 };
-    public int getMaxSpeed () {
+    public final static int[] speedDamage = { 9, 9, 8, 6, 3, 0 };
+
+    public int getMaxSpeed() {
         return speedDamage[damage];
     }
 }

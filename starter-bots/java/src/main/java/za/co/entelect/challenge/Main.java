@@ -7,6 +7,7 @@ import za.co.entelect.challenge.entities.GameState;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Scanner;
+import java.io.File;
 
 public class Main {
 
@@ -14,15 +15,18 @@ public class Main {
     private static final String STATE_FILE_NAME = "state.json";
 
     /**
-     * Read the current state, feed it to the bot, get the output and print it to stdout
+     * Read the current state, feed it to the bot, get the output and print it to
+     * stdout
      *
      * @param args the args
      **/
     public static void main(String[] args) {
         Gson gson = new Gson();
         Bot bot = new Bot();
+        File logs = new File("logs_flags.txt");
+        logs.delete();
         try (Scanner sc = new Scanner(System.in)) {
-            while(true) {
+            while (true) {
                 try {
                     int roundNumber = sc.nextInt();
                     String statePath = String.format("./%s/%d/%s", ROUNDS_DIRECTORY, roundNumber, STATE_FILE_NAME);

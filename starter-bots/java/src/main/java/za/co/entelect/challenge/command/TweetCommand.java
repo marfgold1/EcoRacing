@@ -11,13 +11,13 @@ public class TweetCommand implements Command {
 
     public boolean placeCybertruck(Position enemyPos, Position playerPos) {
         // Delete all candidates that was behind the enemy
-        candidatePositions.removeIf(f -> f.block < enemyPos.block);
+        candidatePositions.removeIf(f -> f.block < enemyPos.block + 10);
         // Place cybertruck if:
         // 1. There's a candidate position
         if (!candidatePositions.isEmpty()) {
-        // 2. First candidate position is behind the player
+            // 2. First candidate position is behind the player
             if (candidatePositions.get(0).block < playerPos.block) {
-        // 3. Last cybertruck passed by enemy
+                // 3. Last cybertruck passed by enemy
                 if (pos.block < enemyPos.block) {
                     // Set cybertruck position to first candidate position and return true
                     // (cybertruck ready to be placed)
