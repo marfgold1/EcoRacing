@@ -46,12 +46,32 @@ public class Bot {
         // NOTES: NOTHING and DECELERATE will not be used, because it is redundant
         List<ArrayList<Command>> availableCommands = new ArrayList<>();
 
+        if (myCar.boostCounter == 1) {
+            myCar.speed = Car.speedDamage[myCar.damage];
+        }
+
         availableCommands.add(fix());
         if (myCar.speed > 0) {
             availableCommands.add(dodge());
         }
         availableCommands.add(accel());
         availableCommands.add(offensive());
+
+        File f = new File("logs_commands.txt");
+        try {
+            FileWriter fw = new FileWriter(f, true);
+            fw.write(String.format("Round : %d ", gameState.currentRound));
+            fw.write("\n");
+            for (ArrayList<Command> commands : availableCommands) {
+                for (Command command : commands) {
+                    fw.write(String.format("%s ", command.render()));
+                }
+            }
+            fw.write("\n");
+            fw.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         // Iterate and return command with the higher priority
         for (ArrayList<Command> commands : availableCommands) {
@@ -85,25 +105,36 @@ public class Bot {
         ArrayList<Command> res = new ArrayList<Command>();
         int myCarLane = myCar.position.lane;
 
+        int prev_speed = myCar.speed;
+        for (int k = 1; k < Car.speedDamage.length - 1; k++) {
+            if (Car.speedDamage[k] < myCar.speed) {
+                prev_speed = Car.speedDamage[k];
+                break;
+            }
+        }
+
         // Check laneflags for player
         Terrain[] flags = LaneFlags(true);
         // special case: boosting
         // the algorithm will check for all lanes, and decide whether the car should
         // decelerate or dodge
 
-        // if (myCar.boosting && isMudOrWall(flags, 0) && isMudOrWall(flags, 1) && isMudOrWall(flags, 2)) {
-        //     // if all lane contains mud or wall, consider to decelerate
-        //     Terrain[] flagsNine = LaneFlags(true, 9);
-        //     if (myCarLane == 1 && isMudOrWall(flagsNine, 1) && !isMudOrWall(flags, 2)) {
-        //         res.add(DECELERATE);
-        //     } else if (myCarLane == 4 && !isMudOrWall(flagsNine, 0) && isMudOrWall(flags, 1)) {
-        //         res.add(DECELERATE);
-        //     } else {
-        //         if (!isMudOrWall(flagsNine, 1)) {
-        //             res.add(DECELERATE);
-        //         }
-        //     }
+        // if (myCar.boosting && isMudOrWall(flags, 0) && isMudOrWall(flags, 1) &&
+        // isMudOrWall(flags, 2)) {
+        // // if all lane contains mud or wall, consider to decelerate
+        // Terrain[] flagsNine = LaneFlags(true, 9);
+        // if (myCarLane == 1 && isMudOrWall(flagsNine, 1) && !isMudOrWall(flags, 2)) {
+        // res.add(DECELERATE);
+        // } else if (myCarLane == 4 && !isMudOrWall(flagsNine, 0) && isMudOrWall(flags,
+        // 1)) {
+        // res.add(DECELERATE);
+        // } else {
+        // if (!isMudOrWall(flagsNine, 1)) {
+        // res.add(DECELERATE);
         // }
+        // }
+        // }
+        Terrain[] deccel_flags = LaneFlags(true, prev_speed);
 
         // Car will try to aim for the powerups
         if (myCarLane == 1 && flags[2] == Terrain.EMPTY && !flags[1].equals(Terrain.BOOST)) {
@@ -122,18 +153,6 @@ public class Bot {
             } else {
                 // If there's an obstacle, avoid it
                 if (!flags[1].equals(Terrain.EMPTY)) {
-                    // If has LIZARD, use it
-                    if (hasPowerUp(PowerUps.LIZARD) && !flags[1].equals(Terrain.OIL_SPILL)) {
-                        res.add(LIZARD);
-                    }
-                    // If all those 3 lanes have an obstacle, choose the least critical one
-                    if (isMudOrWall(flags, 0) && isMudOrWall(flags, 1) && isMudOrWall(flags, 2)) {
-                        if (flags[0] == Terrain.WALL && flags[1] == Terrain.WALL && flags[2] == Terrain.MUD) {
-                            res.add(TURN_RIGHT);
-                        } else if (flags[0] == Terrain.MUD && flags[1] == Terrain.MUD && flags[2] == Terrain.MUD) {
-                            res.add(TURN_LEFT);
-                        }
-                    }
 
                     // Prioritize to stay on middle (lane 2/3)
                     if (myCarLane < 3 && flags[2].equals(Terrain.EMPTY)) {
@@ -146,7 +165,25 @@ public class Bot {
                     } else if (flags[0].equals(Terrain.EMPTY)) {
                         res.add(TURN_LEFT);
                     }
+
+                    // If has LIZARD, use it
+                    if (hasPowerUp(PowerUps.LIZARD) && !flags[1].equals(Terrain.OIL_SPILL)) {
+                        res.add(LIZARD);
+                    }
                 }
+            }
+        }
+
+        if (deccel_flags[1] == Terrain.EMPTY && !(flags[1] == Terrain.EMPTY)) {
+            res.add(DECELERATE);
+        }
+
+        // If all those 3 lanes have an obstacle, choose the least critical one
+        if (isMudOrWall(flags, 0) && isMudOrWall(flags, 1) && isMudOrWall(flags, 2)) {
+            if (flags[0] == Terrain.WALL && flags[1] == Terrain.WALL && flags[2] == Terrain.MUD) {
+                res.add(TURN_RIGHT);
+            } else if (flags[0] == Terrain.MUD && flags[1] == Terrain.WALL && flags[2] == Terrain.WALL) {
+                res.add(TURN_LEFT);
             }
         }
 
@@ -296,7 +333,7 @@ public class Bot {
             if (i - car.position.lane + 2 == 1) {
                 modifier = 0;
                 for (int k = 1; k < Car.speedDamage.length; k++) {
-                    if (Car.speedDamage[k] == car.speed) {
+                    if (Car.speedDamage[k] <= car.speed) {
                         modifier = Math.max(Car.speedDamage[k - 1] - myCar.speed, 0);
                         break;
                     }
@@ -306,7 +343,11 @@ public class Bot {
             // Iterate from car position to car position + speed
             for (int j = Math.max(car.position.block - startBlock, 0); j <= car.position.block - startBlock
                     + forwardDistance + modifier; j++) {
+                if (i - car.position.lane + 2 == 1 && j == 5) {
+                    continue;
+                }
                 debug += String.format("\nlane %d block %d: ", i, j);
+                debug += "(" + laneList[j].terrain + ")";
                 if (laneList[j] == null || laneList[j].terrain.equals(Terrain.FINISH)) {
                     break;
                 }
@@ -331,7 +372,8 @@ public class Bot {
 
                 // If there's mud/oil spills, flag it as a mud
                 if (flags[i - car.position.lane + 2] != Terrain.WALL) {
-                    if ((laneList[j].terrain.equals(Terrain.MUD) || laneList[j].terrain.equals(Terrain.OIL_SPILL)) && laneList[j].occupiedByPlayerId != myCar.id) {
+                    if ((laneList[j].terrain.equals(Terrain.MUD) || laneList[j].terrain.equals(Terrain.OIL_SPILL))
+                            && laneList[j].occupiedByPlayerId != myCar.id) {
                         debug += " MUD";
                         flags[i - car.position.lane + 2] = Terrain.MUD;
                         continue;
