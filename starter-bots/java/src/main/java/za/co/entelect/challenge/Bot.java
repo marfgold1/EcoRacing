@@ -4,6 +4,9 @@ import za.co.entelect.challenge.command.*;
 import za.co.entelect.challenge.entities.*;
 import za.co.entelect.challenge.utils.LaneFlagger;
 import za.co.entelect.challenge.commandGroups.*;
+
+import java.io.File;
+import java.io.FileWriter;
 import java.util.*;
 
 public class Bot {
@@ -17,8 +20,12 @@ public class Bot {
     private Dodge dodge = new Dodge();
     private Accel accel = new Accel();
     private Offensive offensive = new Offensive();
+    private GameState gameState;
 
     public void update(GameState gameState) {
+        // Logging
+        this.gameState = gameState;
+
         // Utils
         this.laneFlagger.update(gameState.lanes, gameState.player, gameState.opponent, gameState.currentRound);
 
@@ -26,6 +33,7 @@ public class Bot {
         this.fix.update(gameState.player, gameState.opponent);
         this.dodge.update(gameState.player, laneFlagger.getFlags(), laneFlagger.getDeccelFlags());
         this.accel.update(laneFlagger.getBoostFlags(), gameState.player);
+        this.offensive.update(gameState.player, gameState.opponent, gameState.lanes);
     }
 
     public Command run() {
@@ -44,6 +52,22 @@ public class Bot {
         availableCommands.add(dodge.getCommands());
         availableCommands.add(accel.getCommands());
         availableCommands.add(offensive.getCommands());
+
+        File f = new File("logs_commands.txt");
+        try {
+            FileWriter fw = new FileWriter(f, true);
+            fw.write(gameState.currentRound + " ");
+            for (ArrayList<Command> command : availableCommands) {
+                for (Command c : command) {
+                    fw.write(c.render() + " ");
+                }
+                fw.write("\n");
+            }
+            fw.write("\n");
+            fw.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         // Iterate and return command with the higher priority
         for (ArrayList<Command> commands : availableCommands) {

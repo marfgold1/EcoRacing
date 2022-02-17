@@ -39,7 +39,7 @@ public class Car {
         int nextSpeed = 0;
         for (int k = 1; k < Car.speedDamage.length; k++) {
             if (Car.speedDamage[k] <= this.speed) {
-                nextSpeed = Math.max(Car.speedDamage[k - 1] - this.speed, 0);
+                nextSpeed = Car.speedDamage[k - 1];
                 break;
             }
         }

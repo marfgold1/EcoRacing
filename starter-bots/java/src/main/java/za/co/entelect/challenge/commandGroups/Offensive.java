@@ -30,6 +30,7 @@ public class Offensive {
     }
 
     public void update(Car player, Car opponent, List<Lane[]> map) {
+        commands.clear();
         if (player.position.block < opponent.position.block && opponent.speed > 6) {
             if (Extras.hasPowerUp(PowerUps.EMP, player))
                 commands.add(EMP);

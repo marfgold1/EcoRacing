@@ -62,7 +62,7 @@ public class LaneFlagger {
 
     // Update flags
     private Terrain[] updateFlags(List<Lane[]> map, Car car, Car opponent, int distance, int currentRound) {
-        int modifier;
+        int modifier = -1;
         Lane[] lane;
         Terrain[] flags = new Terrain[3];
         String debug = "";
@@ -108,6 +108,7 @@ public class LaneFlagger {
                     continue;
                 }
 
+                debug += String.format("distance: %d, modifier: %d\n", distance, modifier);
                 debug += String.format("\nlane %d block %d: (%s) ", i, j, lane[j].terrain);
 
                 // If out of bounds, skip it
@@ -166,7 +167,7 @@ public class LaneFlagger {
             try {
                 FileWriter fw = new FileWriter(f, true);
                 fw.write(Arrays.toString(flags) + '\n');
-                fw.write(String.format("Round : %d ", currentRound) + debug);
+                fw.write(String.format("Round : %d \n", currentRound) + debug);
                 fw.write("\n");
                 fw.close();
             } catch (Exception e) {

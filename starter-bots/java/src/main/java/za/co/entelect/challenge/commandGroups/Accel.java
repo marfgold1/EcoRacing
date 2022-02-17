@@ -28,7 +28,6 @@ public class Accel {
     public void update(Terrain[] flags, Car car) {
         commands.clear();
         boolean useBoost = true;
-        ArrayList<Command> res = new ArrayList<Command>();
 
         // check if the car has damage or the car is already boosting
         if (car.damage > 0 || car.boosting) {
@@ -40,10 +39,10 @@ public class Accel {
         }
 
         if (useBoost && Extras.hasPowerUp(PowerUps.BOOST, car))
-            res.add(BOOST);
+            commands.add(BOOST);
 
         if (car.getSpeed() < car.getMaxSpeed()) {
-            res.add(ACCELERATE);
+            commands.add(ACCELERATE);
         }
     }
 }
