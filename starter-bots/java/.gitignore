@@ -54,3 +54,4 @@ fabric.properties
 target/*
 *.jar 
 *bot/rounds/*
+bin/

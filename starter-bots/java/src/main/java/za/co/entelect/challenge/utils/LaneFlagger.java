@@ -112,7 +112,7 @@ public class LaneFlagger {
                 debug += String.format("\nlane %d block %d: (%s) ", i, j, lane[j].terrain);
 
                 // If out of bounds, skip it
-                if (lane[j] == null || lane[j].terrain == Terrain.FINISH) {
+                if (Extras.isEndOfLane(lane[j])) {
                     break;
                 }
 

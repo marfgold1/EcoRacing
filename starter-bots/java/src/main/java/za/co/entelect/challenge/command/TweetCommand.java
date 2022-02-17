@@ -9,6 +9,9 @@ public class TweetCommand implements Command {
 
     ArrayList<Position> candidatePositions = new ArrayList<>();
 
+    // Try to place the cybertruck if there are any strategic positions
+    // that are more or equal than the enemy block + 10 and return true.
+    // If there are no strategic position available, return false.
     public boolean placeCybertruck(Position enemyPos, Position playerPos) {
         // Delete all candidates that was behind the enemy
         candidatePositions.removeIf(f -> f.block < enemyPos.block + 10);
@@ -28,6 +31,11 @@ public class TweetCommand implements Command {
         }
         // If any of those condition is not met, return false
         return false;
+    }
+    
+    public void setPosition(int lane, int block) {
+        pos.lane = lane;
+        pos.block = block;
     }
 
     public void addPosition(int lane, int block) {

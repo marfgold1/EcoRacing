@@ -1,9 +1,9 @@
 package za.co.entelect.challenge;
 
 import za.co.entelect.challenge.command.*;
+import za.co.entelect.challenge.command.groups.*;
 import za.co.entelect.challenge.entities.*;
 import za.co.entelect.challenge.utils.LaneFlagger;
-import za.co.entelect.challenge.commandGroups.*;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -16,10 +16,10 @@ public class Bot {
     private LaneFlagger laneFlagger = new LaneFlagger();
 
     // Command Groups
-    private Fix fix = new Fix();
-    private Dodge dodge = new Dodge();
-    private Accel accel = new Accel();
-    private Offensive offensive = new Offensive();
+    private CommandGroups fix = new Fix();
+    private CommandGroups dodge = new Dodge(laneFlagger);
+    private CommandGroups accel = new Accel(laneFlagger);
+    private CommandGroups offensive = new Offensive();
     private GameState gameState;
 
     public void update(GameState gameState) {
@@ -30,10 +30,10 @@ public class Bot {
         this.laneFlagger.update(gameState.lanes, gameState.player, gameState.opponent, gameState.currentRound);
 
         // Command Groups
-        this.fix.update(gameState.player, gameState.opponent);
-        this.dodge.update(gameState.player, laneFlagger.getFlags(), laneFlagger.getDeccelFlags());
-        this.accel.update(laneFlagger.getBoostFlags(), gameState.player);
-        this.offensive.update(gameState.player, gameState.opponent, gameState.lanes);
+        this.fix.update(gameState);
+        this.dodge.update(gameState);
+        this.accel.update(gameState);
+        this.offensive.update(gameState);
     }
 
     public Command run() {

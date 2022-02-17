@@ -1,15 +1,18 @@
-package za.co.entelect.challenge.commandGroups;
+package za.co.entelect.challenge.command.groups;
 
 import java.util.ArrayList;
 
 import za.co.entelect.challenge.command.*;
 import za.co.entelect.challenge.entities.Car;
+import za.co.entelect.challenge.entities.GameState;
 import za.co.entelect.challenge.enums.PowerUps;
 import za.co.entelect.challenge.enums.Terrain;
 import za.co.entelect.challenge.utils.Extras;
+import za.co.entelect.challenge.utils.LaneFlagger;
 
-public class Dodge {
+public class Dodge implements CommandGroups {
     private ArrayList<Command> commands;
+    private LaneFlagger flagger;
 
     private final static Command TURN_RIGHT = new ChangeLaneCommand(1);
     private final static Command TURN_LEFT = new ChangeLaneCommand(-1);
@@ -17,18 +20,22 @@ public class Dodge {
     private final static Command DECELERATE = new DecelerateCommand();
 
     // Initialize Array Commands
-    public Dodge() {
+    public Dodge(LaneFlagger flagger) {
+        this.flagger = flagger;
         this.commands = new ArrayList<>();
     }
 
     // Get Commands
     public ArrayList<Command> getCommands() {
-        return this.commands;
+        return commands;
     }
 
     // Update commands
-    public void update(Car car, Terrain[] flags, Terrain[] deccel_flags) {
+    public void update(GameState state) {
         commands.clear();
+        Car car = state.player;
+        Terrain[] flags = flagger.getFlags();
+        Terrain[] deccel_flags = flagger.getDeccelFlags();
         if (car.getSpeed() > 0) {
             int carLane = car.position.lane;
 
