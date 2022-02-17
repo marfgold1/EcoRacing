@@ -108,7 +108,7 @@ public class Offensive implements CommandGroups {
         //    Will place the cybertruck in the nearest strategic position.
         if (Extras.hasPowerUp(PowerUps.TWEET, player)) {
             // First condition
-            if (player.position.block < opponent.position.block && opponent.speed > 9) {
+            if (player.position.block < opponent.position.block) {
                 TWEET.setPosition(
                     opponent.position.lane,
                     opponent.position.block + opponent.speed + 3
