@@ -29,9 +29,38 @@ public class Car {
     @SerializedName("boostCounter")
     public int boostCounter;
 
-    public final static int[] speedDamage = { 9, 9, 8, 6, 3, 0 };
+    private final static int[] speedDamage = { 9, 9, 8, 6, 3, 0 };
 
     public int getMaxSpeed() {
         return speedDamage[damage];
+    }
+
+    public int getNextSpeed() {
+        int nextSpeed = 0;
+        for (int k = 1; k < Car.speedDamage.length; k++) {
+            if (Car.speedDamage[k] <= this.speed) {
+                nextSpeed = Math.max(Car.speedDamage[k - 1] - this.speed, 0);
+                break;
+            }
+        }
+        return nextSpeed;
+    }
+
+    public int getSpeed() {
+        if (this.boostCounter == 1) {
+            this.speed = Car.speedDamage[this.damage];
+        }
+        return this.speed;
+    }
+
+    public int getPrevSpeed() {
+        int prevSpeed = this.speed;
+        for (int k = 1; k < Car.speedDamage.length - 1; k++) {
+            if (Car.speedDamage[k] < this.speed) {
+                prevSpeed = Car.speedDamage[k];
+                break;
+            }
+        }
+        return prevSpeed;
     }
 }
