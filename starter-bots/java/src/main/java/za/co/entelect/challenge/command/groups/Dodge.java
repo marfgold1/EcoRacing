@@ -36,14 +36,17 @@ public class Dodge implements CommandGroups {
         Car car = state.player;
         Terrain[] flags = flagger.getFlags();
         Terrain[] deccel_flags = flagger.getDeccelFlags();
+        Terrain[] boost_flags = flagger.getBoostFlags();
         if (car.getSpeed() > 0) {
             int carLane = car.position.lane;
 
             // If the lane in the middle (lane 2/3) is empty, it will prioritize to stay on
             // the middle
-            if (carLane == 1 && flags[2] == Terrain.EMPTY && !flags[1].equals(Terrain.BOOST)) {
+            if (carLane == 1 && flags[2] == Terrain.EMPTY && !boost_flags[1].equals(Terrain.EMPTY)
+                    && !boost_flags[1].equals(Terrain.BOOST)) {
                 commands.add(TURN_RIGHT);
-            } else if (carLane == 4 && flags[0] == Terrain.EMPTY && !flags[1].equals(Terrain.BOOST)) {
+            } else if (carLane == 4 && flags[0] == Terrain.EMPTY && !boost_flags[1].equals(Terrain.EMPTY)
+                    && !boost_flags[1].equals(Terrain.BOOST)) {
                 commands.add(TURN_LEFT);
             } else {
                 // Player will prioritize getting powerups
