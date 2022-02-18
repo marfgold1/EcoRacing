@@ -34,6 +34,8 @@
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
+                    <finalName>Eco Racing</finalName>
+                    <appendAssemblyId>false</appendAssemblyId>
                     <outputDirectory>bin</outputDirectory>
                 </configuration>
                 <executions>

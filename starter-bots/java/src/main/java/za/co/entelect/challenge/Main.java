@@ -23,10 +23,6 @@ public class Main {
     public static void main(String[] args) {
         Gson gson = new Gson();
         Bot bot = new Bot();
-        File logs = new File("logs_flags.txt");
-        logs.delete();
-        File logs2 = new File("logs_commands.txt");
-        logs2.delete();
         try (Scanner sc = new Scanner(System.in)) {
             while (true) {
                 try {
