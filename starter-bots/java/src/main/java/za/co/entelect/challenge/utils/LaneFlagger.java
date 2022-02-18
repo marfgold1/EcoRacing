@@ -1,7 +1,5 @@
 package za.co.entelect.challenge.utils;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.util.*;
 
 import za.co.entelect.challenge.entities.Car;
@@ -65,7 +63,6 @@ public class LaneFlagger {
         int modifier = -1;
         Lane[] lane;
         Terrain[] flags = new Terrain[3];
-        String debug = "";
 
         // Get the first block in view
         final int StartBlock = map.get(0)[0].position.block;
@@ -108,9 +105,6 @@ public class LaneFlagger {
                     continue;
                 }
 
-                debug += String.format("distance: %d, modifier: %d\n", distance, modifier);
-                debug += String.format("\nlane %d block %d: (%s) ", i, j, lane[j].terrain);
-
                 // If out of bounds, skip it
                 if (Extras.isEndOfLane(lane[j])) {
                     break;
@@ -121,7 +115,6 @@ public class LaneFlagger {
                     if (lane[j].terrain == Terrain.OIL_SPILL || lane[j].terrain == Terrain.WALL
                             || lane[j].terrain.equals(Terrain.MUD)) {
                         flags[i - car.position.lane + 2] = Terrain.OIL_SPILL;
-                        debug += " OIL_SPILL";
                         break;
                     }
                 }
@@ -132,7 +125,6 @@ public class LaneFlagger {
                         || (lane[j].occupiedByPlayerId > 0 && lane[j].occupiedByPlayerId != car.id
                                 && (opponent.position.block
                                         - car.position.block < (car.getSpeed() - opponent.speed)))) {
-                    debug += " WALL";
                     flags[i - car.position.lane + 2] = Terrain.WALL;
                 }
 
@@ -141,7 +133,6 @@ public class LaneFlagger {
                     if ((lane[j].terrain.equals(Terrain.MUD) || lane[j].terrain.equals(Terrain.OIL_SPILL))
                             && lane[j].occupiedByPlayerId != car.id) {
                         flags[i - car.position.lane + 2] = Terrain.MUD;
-                        debug += " MUD";
                         continue;
                     }
                 }
@@ -149,7 +140,6 @@ public class LaneFlagger {
                 // If there's a powerup on an empty lane, flag it as a boost powerup
                 if (flags[i - car.position.lane + 2] == null && TerrainPowerups.contains(lane[j].terrain)) {
                     flags[i - car.position.lane + 2] = Terrain.BOOST;
-                    debug += " BOOST->" + lane[j].terrain.toString();
                 }
             }
         }
@@ -158,22 +148,9 @@ public class LaneFlagger {
             // If there's nothing, flag it as empty
             if (flags[i] == null) {
                 flags[i] = Terrain.EMPTY;
-                debug += String.format("\n lane %d: EMPTY", i);
             }
         }
 
-        if (distance == car.speed) {
-            File f = new File("logs_flags.txt");
-            try {
-                FileWriter fw = new FileWriter(f, true);
-                fw.write(Arrays.toString(flags) + '\n');
-                fw.write(String.format("Round : %d \n", currentRound) + debug);
-                fw.write("\n");
-                fw.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
         return flags;
     }
 }
